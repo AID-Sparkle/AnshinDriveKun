@@ -2,9 +2,75 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Hello Flask</title>
+    <title>あんしんどらいぶくん - 質問入力</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        select, button {
+            margin: 10px;
+            padding: 8px;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Flaskの動作確認ページ</h1>
+    <h1>あんしんどらいぶくん</h1>
+    <p>いくつかの質問から<br>あなたの運転リスクを診断します</p>
+    <p>以下の項目を選択してください：</p>
+
+    <form action="/result" method="POST">
+        <label>運転する時間帯：</label>
+        <select name="time">
+            <option value="">選択してください</option>
+            <option value="早朝">早朝</option>
+            <option value="午前">午前</option>
+            <option value="午後">午後</option>
+            <option value="夕方">夕方</option>
+            <option value="夜">夜</option>
+            <option value="深夜">深夜</option>
+        </select><br>
+
+        <label>年齢：</label>
+        <select name="age">
+            <option value="">選択してください</option>
+            <option value="10代">10代</option>
+            <option value="20代">20代</option>
+            <option value="30代">30代</option>
+            <option value="40代">40代</option>
+            <option value="50代">50代</option>
+            <option value="60代以上">60代以上</option>
+        </select><br>
+
+        <label>性別：</label>
+        <select name="gender">
+            <option value="">選択してください</option>
+            <option value="男性">男性</option>
+            <option value="女性">女性</option>
+        </select><br>
+
+        <label>運転頻度：</label>
+        <select name="degree">
+            <option value="1年未満">1年未満</option>
+            <option value="1〜5年">1〜5年</option>
+            <option value="6〜10年">6〜10年</option>
+            <option value="10年以上">10年以上</option>
+        </select><br>
+
+        <label>天候：</label>
+        <select name="weather">
+            <option value="">選択してください</option>
+            <option value="晴れ">晴れ</option>
+            <option value="曇り">曇り</option>
+            <option value="雨">雨</option>
+            <option value="雷">雷</option>
+            <option value="雪">雪</option>
+            <option value="濃霧">濃霧</option>
+        </select><br>
+
+        <button type="submit">送信</button>
+    </form>
 </body>
 </html>
