@@ -16,7 +16,6 @@ def result():
         time=data.get('time'),
         age=data.get('age'),
         gender=data.get('gender'),
-        degree=data.get('degree'),
         weather=data.get('weather')
     )
 
