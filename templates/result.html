@@ -3,6 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <title>診断結果</title>
+    <style>
+        /* 地図を表示するdivのスタイルを指定 */
+        #map {
+            height: 400px;  /* 高さを指定 (例: 400px) */
+            width: 100%;    /* 幅を指定 (例: 100%) */
+            background-color: #f0f0f0; /* 地図が読み込まれるまでの背景色 */
+            margin-top: 20px;
+        }
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            padding: 0;
+        }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
     <h1>診断結果</h1>
@@ -15,6 +33,44 @@
         <li>天候: {{ weather }}</li>
     </ul>
 
+    <!-- 地図を表示するためのdiv -->
+    <h2>周辺の地図</h2>
+    <p>（これはサンプル表示です）</p>
+    <div id="map"></div>
+
     <a href="/">戻る</a>
+
+    <!-- Google Maps API のスクリプト -->
+    <script>
+        // マップを初期化するコールバック関数
+        function initMap() {
+            // 地図の初期表示位置（例: 皇居周辺）
+            const defaultLocation = { lat: 35.685175, lng: 139.7528 };
+            
+            // 地図のオプション
+            const mapOptions = {
+                zoom: 14, // ズームレベル
+                center: defaultLocation // 中心座標
+            };
+            
+            // 地図オブジェクトを作成し、'map' divに表示
+            const map = new google.maps.Map(document.getElementById("map"), mapOptions);
+            
+            // マーカーを立てる
+            new google.maps.Marker({
+                position: defaultLocation,
+                map: map,
+                title: "サンプル地点"
+            });
+        }
+    </script>
+    
+    <!-- 
+        Google Maps JavaScript API を読み込みます。
+        'callback=initMap'で、API読み込み完了後に 'initMap' 関数を実行します。
+    -->
+    <script async
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAJAp0a86cH0kU0aU_dMtPy2pqL_gdy7Zc&callback=initMap">
+    </script>
 </body>
 </html>
