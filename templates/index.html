@@ -4,16 +4,8 @@
     <meta charset="UTF-8">
     <title>あんしんどらいぶくん - 質問入力</title>
     <style>
-        body {
-            font-family: sans-serif;
-            text-align: center;
-            margin: 50px;
-        }
-        select, button {
-            margin: 10px;
-            padding: 8px;
-            font-size: 16px;
-        }
+        body { font-family: sans-serif; text-align: center; margin: 50px; }
+        select, button { margin: 10px; padding: 8px; font-size: 16px; }
     </style>
 </head>
 <body>
@@ -45,24 +37,26 @@
             <option value="75歳以上">75歳以上</option>
         </select><br>
 
-        <label>性別：</label>
-        <select name="gender">
+        <label>主な移動手段（車種）：</label>
+        <select name="vehicle">
             <option value="">選択してください</option>
-            <option value="男性">男性</option>
-            <option value="女性">女性</option>
+            <option value="乗用車">乗用車</option>
+            <option value="貨物車">貨物車（トラックなど）</option>
+            <option value="バイク">バイク（原付含む）</option>
+            <option value="自転車">自転車</option>
         </select><br>
-
+        
         <label>天候：</label>
         <select name="weather">
             <option value="">選択してください</option>
             <option value="晴れ">晴れ</option>
             <option value="曇り">曇り</option>
             <option value="雨">雨</option>
-            <option value="雪">雪</option>
             <option value="霧">霧</option>
+            <option value="雪">雪</option>
         </select><br>
 
-        <button type="submit">送信</button>
+        <button type="submit">診断する</button>
     </form>
 </body>
 </html>
