@@ -1,11 +1,14 @@
 from flask import Flask, render_template, request
 from dotenv import load_dotenv
+from utils.comment import get_comment, load_comments
 import os
 
 load_dotenv()
 
 app = Flask(__name__)
+load_comments()
 
+# 🔹質問入力画面(トップページ)
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -27,6 +30,13 @@ def result():
     lat_clean = lat.replace(".", "") if lat else "取得失敗"
     lng_clean = lng.replace(".", "") if lng else "取得失敗"
 
+    time = request.form["time"]
+    age = request.form["age"]
+    gender = request.form["gender"]
+    weather = request.form["weather"]
+
+    message = get_comment(time, age, gender, weather)
+
     return render_template(
         'result.html',
         time=data.get('time'),
@@ -37,7 +47,8 @@ def result():
         lat=lat,
         lng=lng,
         lat_clean=lat_clean,
-        lng_clean=lng_clean
+        lng_clean=lng_clean,
+        message=message
     )
 
 if __name__ == '__main__':
