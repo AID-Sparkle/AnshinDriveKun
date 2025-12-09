@@ -21,9 +21,11 @@
     <p>いくつかの質問から<br>あなたの運転リスクを診断します</p>
     <p>以下の項目を選択してください：</p>
 
-    <form action="/result" method="POST">
+    <!-- 🚗 送信先を /loading に変更 (GET方式) -->
+    <form action="/loading" method="GET">
+
         <label>運転する時間帯：</label>
-        <select name="time">
+        <select name="time" required>
             <option value="">選択してください</option>
             <option value="早朝(4:00~7:00)">早朝(4:00~7:00)</option>
             <option value="午前(7:00~12:00)">午前(7:00~12:00)</option>
@@ -34,7 +36,7 @@
         </select><br>
 
         <label>年齢：</label>
-        <select name="age">
+        <select name="age" required>
             <option value="">選択してください</option>
             <option value="18～24歳">18～24歳</option>
             <option value="25～34歳">25～34歳</option>
@@ -46,14 +48,14 @@
         </select><br>
 
         <label>性別：</label>
-        <select name="gender">
+        <select name="gender" required>
             <option value="">選択してください</option>
             <option value="男性">男性</option>
             <option value="女性">女性</option>
         </select><br>
 
         <label>天候：</label>
-        <select name="weather">
+        <select name="weather" required>
             <option value="">選択してください</option>
             <option value="晴れ">晴れ</option>
             <option value="曇り">曇り</option>
@@ -62,7 +64,7 @@
             <option value="霧">霧</option>
         </select><br>
 
-        <button type="submit">送信</button>
+        <button type="submit">診断開始</button>
     </form>
 </body>
 </html>
