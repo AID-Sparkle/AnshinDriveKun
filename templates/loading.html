@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>診断中...</title>
+    <style>
+        body { text-align: center; padding: 50px; font-family: sans-serif; }
+        .spinner {
+            border: 8px solid #ddd;
+            border-top: 8px solid #4CAF50;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <h2>診断中...</h2>
+    <p>現在地情報を取得しています。しばらくお待ちください。</p>
+    <div class="spinner"></div>
+
+    <!-- 🚀 自動送信用フォーム -->
+    <form id="sendForm" action="/result" method="POST">
+        <input type="hidden" name="time" id="time">
+        <input type="hidden" name="age" id="age">
+        <input type="hidden" name="gender" id="gender">
+        <input type="hidden" name="weather" id="weather">
+
+        <input type="hidden" name="lat" id="lat">
+        <input type="hidden" name="lng" id="lng">
+    </form>
+
+<script>
+window.onload = function() {
+
+    // URLパラメータ受け取り
+    const params = new URLSearchParams(location.search);
+    document.getElementById("time").value = params.get("time");
+    document.getElementById("age").value = params.get("age");
+    document.getElementById("gender").value = params.get("gender");
+    document.getElementById("weather").value = params.get("weather");
+
+    // GPS取得
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            document.getElementById("lat").value = pos.coords.latitude.toFixed(6);
+            document.getElementById("lng").value = pos.coords.longitude.toFixed(6);
+            document.getElementById("sendForm").submit();
+        },
+        () => {
+            alert("位置情報取得に失敗しました。やり直してください。");
+            location.href = "/";
+        }
+    );
+};
+</script>
+</body>
+</html>

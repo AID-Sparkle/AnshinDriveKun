@@ -33,44 +33,65 @@
         <li>天候: {{ weather }}</li>
     </ul>
 
-    <!-- 地図を表示するためのdiv -->
+    <!-- ★テスト用：緯度経度表示（本番で削除OK） -->
+    <h3>（テスト表示）取得した現在位置：</h3>
+    <p id="coords">位置情報取得中…</p>
+
+    <!-- 小数点削除後の緯度経度（CSV形式用） -->
+    <li><strong>緯度（CSV形式）:</strong> {{ lat_clean }}</li>
+    <li><strong>経度（CSV形式）:</strong> {{ lng_clean }}</li>
+
     <h2>周辺の地図</h2>
-    <p>（これはサンプル表示です）</p>
     <div id="map"></div>
 
     <a href="/">戻る</a>
 
-    <!-- Google Maps API のスクリプト -->
-    <script>
-        // マップを初期化するコールバック関数
-        function initMap() {
-            // 地図の初期表示位置（例: 皇居周辺）
-            const defaultLocation = { lat: 35.685175, lng: 139.7528 };
-            
-            // 地図のオプション
-            const mapOptions = {
-                zoom: 14, // ズームレベル
-                center: defaultLocation // 中心座標
-            };
-            
-            // 地図オブジェクトを作成し、'map' divに表示
-            const map = new google.maps.Map(document.getElementById("map"), mapOptions);
-            
-            // マーカーを立てる
-            new google.maps.Marker({
-                position: defaultLocation,
-                map: map,
-                title: "サンプル地点"
-            });
+<script>
+    let map;
+
+    function initMap() {
+        const defaultLocation = { lat: 35.685175, lng: 139.7528 };
+
+        map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 14,
+            center: defaultLocation
+        });
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+
+                    // ★ページに表示
+                    document.getElementById("coords").innerText =
+                        `緯度: ${userLocation.lat}, 経度: ${userLocation.lng}`;
+
+                    // マップに反映
+                    map.setCenter(userLocation);
+
+                    new google.maps.Marker({
+                        position: userLocation,
+                        map: map,
+                        title: "現在地"
+                    });
+                },
+                () => {
+                    document.getElementById("coords").innerText =
+                        "⚠️ 位置情報が拒否されました。デフォルト位置を使用します。";
+                }
+            );
+        } else {
+            document.getElementById("coords").innerText =
+                "⚠️ このブラウザは位置情報取得に対応していません。";
         }
-    </script>
-    
-    <!-- 
-        Google Maps JavaScript API を読み込みます。
-        'callback=initMap'で、API読み込み完了後に 'initMap' 関数を実行します。
-    -->
-    <script async
-        src="https://maps.googleapis.com/maps/api/js?key={{api_key}}&callback=initMap">
-    </script>
+    }
+</script>
+
+<script async
+    src="https://maps.googleapis.com/maps/api/js?key={{api_key}}&callback=initMap">
+</script>
 </body>
 </html>
