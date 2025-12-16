@@ -13,8 +13,6 @@ load_dotenv()
 app = Flask(__name__)
 load_comments()
 base_dir = os.path.dirname(os.path.abspath(__file__))
-static_folder_path = os.path.join(base_dir, '.vscode', 'data', 'static')
-app = Flask(__name__, static_folder=static_folder_path)
 
 #質問入力画面(トップページ)
 @app.route('/')
