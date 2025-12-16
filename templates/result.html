@@ -2,42 +2,157 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>診断結果</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>診断結果 - あんしんどらいぶくん</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* 地図を表示するdivのスタイルを指定 */
-        #map {
-            height: 400px;
-            width: 100%;
-            background-color: #f0f0f0;
-            margin-top: 20px;
+        :root {
+            --primary-color: #4facfe;
+            --secondary-color: #00f2fe;
+            --text-color: #333;
         }
+
         body {
-            font-family: sans-serif;
-            text-align: center;
-            margin: 20px;
-            padding: 0;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
         }
-        ul {
+
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 28px;
+            border: 3px solid var(--primary-color);
+            display: inline-block;
+            padding: 10px 30px;
+            border-radius: 50px;
+            background-color: #eaf6ff;
+        }
+
+        h2 {
+            font-size: 20px;
+            color: #555;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        h2.section-title {
+            color: #2c3e50;
+            font-size: 22px;
+            border-bottom: 3px solid var(--primary-color);
+            display: inline-block;
+            padding-bottom: 5px;
+            margin-top: 40px;
+        }
+
+        .info-list {
             list-style: none;
             padding: 0;
+            text-align: left;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
         }
-        a {
-            display: inline-block;
-            margin-top: 20px;
+
+        .info-list li {
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #555;
+            border-bottom: 1px dashed #ddd;
+            padding-bottom: 5px;
         }
-        #chart-container {
-            width: 90%;
-            max-width: 600px;
-            height: 400px;
-            margin: 20px auto;
-            background-color: white;
-            padding: 10px;
-            border-radius: 8px;
-            border: 3px solid #007bff;
+        
+        .info-list li:last-child {
+            border-bottom: none;
+        }
+
+        .result-box {
+            background: linear-gradient(to right, #ffecd2 0%, #fcb69f 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            color: #d35400;
+            border: 3px solid #d35400; 
+            box-shadow: 0 8px 20px rgba(211, 84, 0, 0.15);
+        }
+        
+        .score {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+            text-shadow: 1px 1px 0px rgba(255,255,255,0.5);
+        }
+
+        .advice {
+            font-size: 16px;
+            line-height: 1.6;
+            background: rgba(255,255,255,0.7);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(211, 84, 0, 0.2);
+            text-align: left;
+        }
+
+        /* グラフ用 */
+        .chart-container {
             position: relative;
+            height: 300px;
+            width: 100%;
+            margin-top: 20px;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 10px;
+            box-sizing: border-box;
         }
+
+        /* マップ用 */
+        #map {
+            width: 100%;
+            height: 300px;
+            border-radius: 15px;
+            margin-top: 5px;
+            border: 4px solid #eaf6ff;
+        }
+
+        a.btn-back {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 30px;
+            background-color: #999;
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        a.btn-back:hover {
+            background-color: #777;
+        }
+
         .no-data-msg {
             position: absolute;
             top: 50%;
@@ -49,46 +164,72 @@
     </style>
 </head>
 <body>
-    <h1>診断結果</h1>
-
-    <h2>アドバイス</h2>
-    <p>{{ message }}</p>
-    
-    <p>以下の内容を受け取りました：</p>
-
-    <ul>
-        <li>運転する時間帯: {{ time }}</li>
-        <li>年齢: {{ age }}</li>
-        <li>性別: {{ gender }}</li>
-        <li>天候: {{ weather }}</li>
-    </ul>
-
-    <!-- ★テスト用：緯度経度表示（本番で削除OK） -->
+<!--
+    テスト用：緯度経度表示（本番で削除可）
     <h3>（テスト表示）取得した現在位置：</h3>
     <p id="coords">位置情報取得中…</p>
 
-    <!-- 小数点削除後の緯度経度（CSV形式用） -->
+    小数点削除後の緯度経度（CSV形式用）
     <li><strong>緯度（CSV形式）:</strong> {{ lat_clean }}</li>
     <li><strong>経度（CSV形式）:</strong> {{ lng_clean }}</li>
+-->
 
-    <h2>周辺の地図</h2>
-    <div id="map"></div>
+    <div class="container">
+        <h1>🔍 診断結果</h1>
+        <p>以下の条件で分析しました</p>
 
-    <!--グラフ表示-->
-    <div id="chart-container">
-        <canvas id="myChart"></canvas>
+        <ul class="info-list">
+            <li>⏰ 時間帯： {{ time }}</li>
+            <li>🎂 年齢　： {{ age }}</li>
+            <li>🚻 性別　： {{ gender }}</li>
+            <li>⛅ 天候　： {{ weather }}</li>
+        </ul>
+
+        <div class="result-box">
+            <h2>あなたの運転リスク診断</h2>
+            <div class="score">安全スコア：{{ score }}点</div>
+            <div class="advice">
+                <strong>【AIからのアドバイス】</strong><br>
+                {{ message | safe }}
+            </div>
+        </div>
+
+        <h2 class="section-title">📊 事故発生件数データ</h2>
+        <p style="font-size: 14px; color: #666;">同条件での時間帯別事故件数（過去データ）</p>
+        <div class="chart-container">
+            <canvas id="myChart"></canvas>
+        </div>
+
+        <h2 class="section-title">📍 あなたの現在地周辺</h2>
+        <div id="map"></div>
+        <p style="font-size:12px; color:#999; margin-top:10px;">※取得した位置情報を表示しています</p>
+
+        <a href="/" class="btn-back">もう一度診断する</a>
     </div>
 
-    <a href="/">戻る</a>
+    <script>
+        function initMap() {
+            //マップ初期位置(皇居周辺)
+            const lat = Number("{{ lat }}") || 35.685175;
+            const lng = Number("{{ lng }}") || 139.7528;
+            const myLocation = { lat: lat, lng: lng };
+            
+            const mapOptions = { zoom: 15, center: myLocation };
+            const map = new google.maps.Map(document.getElementById("map"), mapOptions);
+            new google.maps.Marker({ position: myLocation, map: map, title: "現在地" });
+        }
+    </script>
+    <script async src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&callback=initMap"></script>
 
     <script>
+        // Pythonから渡されたデータを受け取る
         const chartLabels = {{ chart_labels | tojson }};
         const chartData = {{ chart_data | tojson }};
-        const chartContainer = document.getElementById('chart-container');
-
+        
+        // データがあるか確認
         const totalCount = chartData.reduce((sum, num) => sum + num, 0);
 
-        if (totalCount > 0) {
+        if (totalCount >= 0) { // データ0件でもグラフ枠は表示する
             const ctx = document.getElementById('myChart').getContext('2d');
             new Chart(ctx, {
                 type: 'bar',
@@ -97,72 +238,30 @@
                     datasets: [{
                         label: '事故件数',
                         data: chartData,
-                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
+                        backgroundColor: 'rgba(79, 172, 254, 0.6)',
+                        borderColor: 'rgba(79, 172, 254, 1)',
+                        borderWidth: 1,
+                        borderRadius: 5
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
                     scales: {
-                        y: { beginAtZero: true, title: { display: true, text: '件数' }, suggestedMax: 5 }
+                        y: { 
+                            beginAtZero: true, 
+                            title: { display: true, text: '事故件数' },
+                            ticks: { stepSize: 1 } 
+                        }
                     }
                 }
             });
         } else {
-            document.getElementById('myChart').remove();
-            chartContainer.innerHTML = '<p class="no-data-msg">条件に一致するデータがありませんでした。</p>';
+            document.querySelector('.chart-container').innerHTML = '<p style="padding-top:130px; color:#999;">データがありませんでした</p>';
         }
     </script>
-
-    <script>
-        let map;
-
-        function initMap() {
-            //マップ初期位置(皇居周辺)
-            const defaultLocation = { lat: 35.685175, lng: 139.7528 };
-
-            map = new google.maps.Map(document.getElementById("map"), {
-                zoom: 14,
-                center: defaultLocation
-            });
-
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const userLocation = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        };
-
-                        // ★ページに表示
-                        document.getElementById("coords").innerText =
-                            `緯度: ${userLocation.lat}, 経度: ${userLocation.lng}`;
-
-                        // マップに反映
-                        map.setCenter(userLocation);
-
-                        new google.maps.Marker({
-                            position: userLocation,
-                            map: map,
-                            title: "現在地"
-                        });
-                    },
-                    () => {
-                        document.getElementById("coords").innerText =
-                            "⚠️ 位置情報が拒否されました。デフォルト位置を使用します。";
-                    }
-                );
-            } else {
-                document.getElementById("coords").innerText =
-                    "⚠️ このブラウザは位置情報取得に対応していません。";
-            }
-        }
-    </script>
-
-<script async
-    src="https://maps.googleapis.com/maps/api/js?key={{api_key}}&callback=initMap">
-</script>
 </body>
 </html>
