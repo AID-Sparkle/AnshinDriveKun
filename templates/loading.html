@@ -26,6 +26,7 @@
     <form id="sendForm" action="/result" method="POST">
         <input type="hidden" name="time" id="time">
         <input type="hidden" name="age" id="age">
+        //🟥genderからvehicleに要変更
         <input type="hidden" name="gender" id="gender">
         <input type="hidden" name="weather" id="weather">
 
@@ -40,6 +41,7 @@ window.onload = function() {
     const params = new URLSearchParams(location.search);
     document.getElementById("time").value = params.get("time");
     document.getElementById("age").value = params.get("age");
+    <!-- 🟥genderからvehicleに要変更 -->
     document.getElementById("gender").value = params.get("gender");
     document.getElementById("weather").value = params.get("weather");
 
