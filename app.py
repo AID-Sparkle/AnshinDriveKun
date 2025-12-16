@@ -1,11 +1,13 @@
-from flask import Flask, render_template, request
-from dotenv import load_dotenv
-from utils.comment import get_comment, load_comments
 import os
 import pandas as pd
 import re
+from flask import Flask, render_template, request
+from dotenv import load_dotenv
+from utils.comment import get_comment, load_comments
+
 
 load_dotenv()
+
 
 #設定
 app = Flask(__name__)
@@ -14,26 +16,26 @@ base_dir = os.path.dirname(os.path.abspath(__file__))
 static_folder_path = os.path.join(base_dir, '.vscode', 'data', 'static')
 app = Flask(__name__, static_folder=static_folder_path)
 
-# 🔹質問入力画面(トップページ)
+#質問入力画面(トップページ)
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# 🔹ロード画面
+#ロード画面
 @app.route('/loading', methods=['GET'])
 def loading():
     return render_template('loading.html')
 
-# 🔹結果画面
+#結果画面
 @app.route('/result', methods=['POST'])
 def result():
     #フォームから送られてきたデータを取得
     data = request.form
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
 
+    #テスト用緯度経度をCSVと同じ形式にする（本番で削除可）
     lat = request.form.get("lat")
     lng = request.form.get("lng")
-
     lat_clean = lat.replace(".", "") if lat else "取得失敗"
     lng_clean = lng.replace(".", "") if lng else "取得失敗"
 
@@ -110,6 +112,11 @@ def result():
     hourly_counts = df['発生日時　　時'].value_counts()
     counts = [int(hourly_counts.get(h, 0)) for h in target_hours]
 
+    #スコア計算
+    total_accidents = sum(counts)
+    score = max(0, 100 - (total_accidents * 2)) # 簡易計算
+    if score < 50: score = 50 # 最低保証
+
     return render_template(
         'result.html',
         time=data.get('time'),
@@ -118,6 +125,7 @@ def result():
         gender=data.get('gender'),
         weather=data.get('weather'),
         api_key=api_key,
+        score=score,
         chart_labels=target_hours,
         chart_data=counts,
         message=message,
