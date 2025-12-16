@@ -3,22 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <title>診断結果</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* 地図を表示するdivのスタイルを指定 */
         #map {
-            height: 400px;  /* 高さを指定 (例: 400px) */
-            width: 100%;    /* 幅を指定 (例: 100%) */
-            background-color: #f0f0f0; /* 地図が読み込まれるまでの背景色 */
+            height: 400px;
+            width: 100%;
+            background-color: #f0f0f0;
             margin-top: 20px;
         }
         body {
             font-family: sans-serif;
+            text-align: center;
             margin: 20px;
+            padding: 0;
+        }
+        ul {
+            list-style: none;
             padding: 0;
         }
         a {
             display: inline-block;
             margin-top: 20px;
+        }
+        #chart-container {
+            width: 90%;
+            max-width: 600px;
+            height: 400px;
+            margin: 20px auto;
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            border: 3px solid #007bff;
+            position: relative;
+        }
+        .no-data-msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #888;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -48,51 +74,92 @@
     <h2>周辺の地図</h2>
     <div id="map"></div>
 
+    <!--グラフ表示-->
+    <div id="chart-container">
+        <canvas id="myChart"></canvas>
+    </div>
+
     <a href="/">戻る</a>
 
-<script>
-    let map;
+    <script>
+        const chartLabels = {{ chart_labels | tojson }};
+        const chartData = {{ chart_data | tojson }};
+        const chartContainer = document.getElementById('chart-container');
 
-    function initMap() {
-        const defaultLocation = { lat: 35.685175, lng: 139.7528 };
+        const totalCount = chartData.reduce((sum, num) => sum + num, 0);
 
-        map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 14,
-            center: defaultLocation
-        });
-
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const userLocation = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    };
-
-                    // ★ページに表示
-                    document.getElementById("coords").innerText =
-                        `緯度: ${userLocation.lat}, 経度: ${userLocation.lng}`;
-
-                    // マップに反映
-                    map.setCenter(userLocation);
-
-                    new google.maps.Marker({
-                        position: userLocation,
-                        map: map,
-                        title: "現在地"
-                    });
+        if (totalCount > 0) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels.map(h => h + '時'),
+                    datasets: [{
+                        label: '事故件数',
+                        data: chartData,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
                 },
-                () => {
-                    document.getElementById("coords").innerText =
-                        "⚠️ 位置情報が拒否されました。デフォルト位置を使用します。";
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: '件数' }, suggestedMax: 5 }
+                    }
                 }
-            );
+            });
         } else {
-            document.getElementById("coords").innerText =
-                "⚠️ このブラウザは位置情報取得に対応していません。";
+            document.getElementById('myChart').remove();
+            chartContainer.innerHTML = '<p class="no-data-msg">条件に一致するデータがありませんでした。</p>';
         }
-    }
-</script>
+    </script>
+
+    <script>
+        let map;
+
+        function initMap() {
+            //マップ初期位置(皇居周辺)
+            const defaultLocation = { lat: 35.685175, lng: 139.7528 };
+
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 14,
+                center: defaultLocation
+            });
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+
+                        // ★ページに表示
+                        document.getElementById("coords").innerText =
+                            `緯度: ${userLocation.lat}, 経度: ${userLocation.lng}`;
+
+                        // マップに反映
+                        map.setCenter(userLocation);
+
+                        new google.maps.Marker({
+                            position: userLocation,
+                            map: map,
+                            title: "現在地"
+                        });
+                    },
+                    () => {
+                        document.getElementById("coords").innerText =
+                            "⚠️ 位置情報が拒否されました。デフォルト位置を使用します。";
+                    }
+                );
+            } else {
+                document.getElementById("coords").innerText =
+                    "⚠️ このブラウザは位置情報取得に対応していません。";
+            }
+        }
+    </script>
 
 <script async
     src="https://maps.googleapis.com/maps/api/js?key={{api_key}}&callback=initMap">

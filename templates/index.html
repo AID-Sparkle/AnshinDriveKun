@@ -21,7 +21,6 @@
     <p>いくつかの質問から<br>あなたの運転リスクを診断します</p>
     <p>以下の項目を選択してください：</p>
 
-    <!-- 🚗 送信先を /loading に変更 (GET方式) -->
     <form action="/loading" method="GET">
 
         <label>運転する時間帯：</label>
@@ -53,6 +52,17 @@
             <option value="男性">男性</option>
             <option value="女性">女性</option>
         </select><br>
+
+        <!--🟥↑genderを消してこのコメントアウトを解除してvehecleに変更
+        <label>主な移動手段（車種）：</label>
+        <select name="vehicle">
+            <option value="">選択してください</option>
+            <option value="乗用車">乗用車</option>
+            <option value="貨物車">貨物車（トラックなど）</option>
+            <option value="バイク">バイク（原付含む）</option>
+            <option value="自転車">自転車</option>
+        </select><br>
+        -->
 
         <label>天候：</label>
         <select name="weather" required>
