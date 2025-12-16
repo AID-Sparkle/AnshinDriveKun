@@ -3,60 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <title>診断中...</title>
-    <style>
-        body { text-align: center; padding: 50px; font-family: sans-serif; }
-        .spinner {
-            border: 8px solid #ddd;
-            border-top: 8px solid #4CAF50;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/loading.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animation.css') }}">
 </head>
 <body>
-    <h2>診断中...</h2>
-    <p>現在地情報を取得しています。しばらくお待ちください。</p>
-    <div class="spinner"></div>
 
+<div class="loading-container">
+    <h2>診断中...</h2>
+    <p class="loading-text">現在地情報を取得しています</p>
+
+    <!-- 進捗エリア -->
+    <div class="progress-wrapper">
+        <div class="car">🚗</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-percent" id="progressPercent">0%</div>
+    </div>
+
+    <!-- フォーム -->
     <form id="sendForm" action="/result" method="POST">
         <input type="hidden" name="time" id="time">
         <input type="hidden" name="age" id="age">
-        //🟥genderからvehicleに要変更
+        <!-- 🟥genderからvehicleに要変更 -->
         <input type="hidden" name="gender" id="gender">
         <input type="hidden" name="weather" id="weather">
-
         <input type="hidden" name="lat" id="lat">
         <input type="hidden" name="lng" id="lng">
     </form>
+</div>
 
 <script>
 window.onload = function() {
 
-    // URLパラメータ受け取り
+    // URLパラメータ
     const params = new URLSearchParams(location.search);
-    document.getElementById("time").value = params.get("time");
-    document.getElementById("age").value = params.get("age");
-    <!-- 🟥genderからvehicleに要変更 -->
-    document.getElementById("gender").value = params.get("gender");
-    document.getElementById("weather").value = params.get("weather");
+    time.value = params.get("time");
+    age.value = params.get("age");
+    gender.value = params.get("gender");
+    weather.value = params.get("weather");
+
+    // 疑似プログレス
+    let progress = 0;
+    const bar = document.getElementById("progressFill");
+    const percent = document.getElementById("progressPercent");
+    const car = document.querySelector(".car");
+
+    const timer = setInterval(() => {
+        if (progress < 90) {
+            progress += 1;
+            bar.style.width = progress + "%";
+            percent.textContent = progress + "%";
+            car.style.left = `calc(${progress}% - 12px)`;
+        }
+    }, 40);
 
     // GPS取得
     navigator.geolocation.getCurrentPosition(
         (pos) => {
-            document.getElementById("lat").value = pos.coords.latitude.toFixed(6);
-            document.getElementById("lng").value = pos.coords.longitude.toFixed(6);
-            document.getElementById("sendForm").submit();
+            clearInterval(timer);
+            bar.style.width = "100%";
+            percent.textContent = "100%";
+            car.style.left = "calc(100% - 12px)";
+
+            lat.value = pos.coords.latitude.toFixed(6);
+            lng.value = pos.coords.longitude.toFixed(6);
+
+            setTimeout(() => {
+                document.getElementById("sendForm").submit();
+            }, 500);
         },
         () => {
-            alert("位置情報取得に失敗しました。やり直してください。");
+            alert("位置情報取得に失敗しました。");
             location.href = "/";
         }
     );
 };
 </script>
+
 </body>
 </html>
