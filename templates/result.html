@@ -7,7 +7,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
-    <body class="result-page">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/result.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/animation.css') }}">
@@ -37,7 +36,8 @@
 
         <div class="result-box">
             <h2>あなたの運転リスク診断</h2>
-            <div class="score">安全スコア：{{ score }}点</div>
+            <div class="score-label">危険度スコア</div>
+            <div class="score">{{ score }}点</div>
             <div class="advice">
                 <strong>【AIからのアドバイス】</strong><br>
                 {{ message | safe }}

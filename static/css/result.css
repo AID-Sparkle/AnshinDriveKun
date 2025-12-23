@@ -66,6 +66,12 @@ body.result-page {
     box-shadow: 0 8px 20px rgba(211, 84, 0, 0.15);
 }
 
+.score-label {
+    font-size: 22px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
 .score {
     font-size: 48px;
     font-weight: bold;
@@ -125,4 +131,19 @@ a.btn-back:hover {
     transform: translate(-50%, -50%);
     color: #888;
     font-weight: bold;
+}
+
+/* =============================
+   スマホ用（〜768px）
+============================= */
+@media screen and (max-width: 768px) {
+
+    .score-label {
+        font-size: 18px;
+    }
+
+    .score {
+        font-size: 36px;
+        white-space: nowrap;
+    }
 }

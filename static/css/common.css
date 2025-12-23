@@ -16,6 +16,10 @@ body {
     padding: 20px;
     min-height: 100vh;
     color: var(--text-color);
+}
+
+/* 中央寄せが必要なページだけ */
+body:not(.loading-page) {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -34,4 +38,38 @@ body {
 h1 {
     color: #2c3e50;
     margin: 0 0 10px;
+}
+
+/* =============================
+   スマホ用（〜768px）
+============================= */
+@media screen and (max-width: 768px) {
+
+    body {
+        padding: 12px;
+        align-items: flex-start;
+    }
+
+    .container {
+        padding: 20px 16px;
+        max-width: 100%;
+    }
+
+    h1 {
+        font-size: 22px;
+    }
+
+    h2 {
+        font-size: 18px;
+    }
+
+    p, li {
+        font-size: 14px;
+    }
+
+    button,
+    a.btn-back {
+        font-size: 16px;
+        padding: 14px;
+    }
 }
