@@ -133,6 +133,34 @@ a.btn-back:hover {
     font-weight: bold;
 }
 
+/* グラフ補足説明 */
+.chart-note {
+    font-size: 14px;
+    color: #666;
+}
+
+/* マップ補足説明 */
+.map-note {
+    font-size: 12px;
+    color: #999;
+    margin-top: 10px;
+}
+
+/* 出典URL */
+.source {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+/* URL部分 */
+.source a {
+    color: #999;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+}
+
 /* =============================
    スマホ用（〜768px）
 ============================= */
