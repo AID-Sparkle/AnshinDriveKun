@@ -45,17 +45,23 @@
         </div>
 
         <h2 class="section-title">📊 事故発生件数データ</h2>
-        <p style="font-size: 14px; color: #666;">同条件での時間帯別事故件数（過去データ）</p>
+        <p class="chart-note">同条件での時間帯別事故件数（過去データ）</p>
         <div class="chart-container">
             <canvas id="myChart"></canvas>
         </div>
 
         <h2 class="section-title">📍 あなたの現在地周辺</h2>
         <div id="map"></div>
-        <p style="font-size:12px; color:#999; margin-top:10px;">※取得した位置情報を表示しています</p>
+        <p class="map-note">※取得した位置情報を表示しています</p>
 
         <a href="/" class="btn-back">もう一度診断する</a>
-        <p style="font-size:12px; color:#999; margin-bottom:10px;">出典:警察庁ウェブサイト(https://www.npa.go.jp/publications/statistics/koutsuu/opendata/index_opendata.html)</p>
+        <p class="source">
+            出典：警察庁ウェブサイト<br>
+            <a href="https://www.npa.go.jp/publications/statistics/koutsuu/opendata/index_opendata.html"
+                target="_blank" rel="noopener noreferrer">
+                https://www.npa.go.jp/publications/statistics/koutsuu/opendata/index_opendata.html
+            </a>
+        </p>
     </div>
 
     <script>
