@@ -37,13 +37,13 @@ def result():
     lat_clean = lat.replace(".", "") if lat else "取得失敗"
     lng_clean = lng.replace(".", "") if lng else "取得失敗"
 
+    #アドバイスを生成
     time = request.form["time"]
     age = request.form["age"]
-    #🟥genderからvehicleに要変更
-    gender = request.form["gender"]
+    vehicle = request.form["vehicle"]
     weather = request.form["weather"]
 
-    message = get_comment(time, age, gender, weather)
+    message = get_comment(time, age, vehicle, weather)
 
     #グラフ処理
         # --- 1. CSV読み込み ---
@@ -119,8 +119,7 @@ def result():
         'result.html',
         time=data.get('time'),
         age=data.get('age'),
-        #🟥genderからvehicleに要変更
-        gender=data.get('gender'),
+        vehicle=data.get('vehicle'),
         weather=data.get('weather'),
         api_key=api_key,
         score=score,

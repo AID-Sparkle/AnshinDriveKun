@@ -14,7 +14,7 @@ def load_comments(csv_path=None):
         reader = csv.DictReader(f)
         COMMENTS = [row for row in reader]
 
-def get_comment(time, age, gender, weather):
+def get_comment(time, age, vehicle, weather):
     if not COMMENTS:
         load_comments()
 
@@ -23,7 +23,7 @@ def get_comment(time, age, gender, weather):
         c for c in COMMENTS
         if c["time"] == time and
            c["age"] == age and
-           c["gender"] == gender and
+           c["vehicle"] == vehicle and
            c["weather"] == weather
     ]
     if exact:
@@ -34,7 +34,7 @@ def get_comment(time, age, gender, weather):
         c for c in COMMENTS
         if (c["time"] in (time, "any")) and
            (c["age"] in (age, "any")) and
-           (c["gender"] in (gender, "any")) and
+           (c["vehicle"] in (vehicle, "any")) and
            (c["weather"] in (weather, "any"))
     ]
     if fallback:
