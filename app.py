@@ -4,7 +4,7 @@ import re
 from flask import Flask, render_template, request
 from dotenv import load_dotenv
 from utils.comment import get_comment, load_comments
-
+from utils.score import calculate_risk_score
 
 load_dotenv()
 
@@ -29,7 +29,7 @@ def loading():
 def result():
     #フォームから送られてきたデータを取得
     data = request.form
-    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    api_key = os.getenv("GOOGLE_MAPS_API_KzEY")
 
     #テスト用緯度経度をCSVと同じ形式にする（本番で削除可）
     lat = request.form.get("lat")
@@ -110,10 +110,14 @@ def result():
     hourly_counts = df['発生日時　　時'].value_counts()
     counts = [int(hourly_counts.get(h, 0)) for h in target_hours]
 
+
     #スコア計算
-    total_accidents = sum(counts)
-    score = max(0, 100 - (total_accidents * 2)) # 簡易計算
-    if score < 50: score = 50 # 最低保証
+    score = calculate_risk_score(
+        time=request.form["time"],
+        age=request.form["age"],
+        weather=request.form["weather"],
+        vehicle=request.form["vehicle"]
+)
 
     return render_template(
         'result.html',
