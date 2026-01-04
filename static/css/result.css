@@ -139,6 +139,12 @@ a.btn-back:hover {
     color: #666;
 }
 
+/* マップクリック説明 */
+.map-click-note {
+    font-size: 14px;
+    color: #666;
+}
+
 /* マップ補足説明 */
 .map-note {
     font-size: 12px;

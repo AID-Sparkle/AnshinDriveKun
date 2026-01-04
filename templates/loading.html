@@ -35,52 +35,61 @@
 </div>
 
 <script>
-window.onload = function() {
+    window.onload = function() {
 
-    // URLパラメータ
-    const params = new URLSearchParams(location.search);
-    time.value = params.get("time");
-    age.value = params.get("age");
-    vehicle.value = params.get("vehicle");
-    weather.value = params.get("weather");
+        const params = new URLSearchParams(location.search);
+        time.value = params.get("time");
+        age.value = params.get("age");
+        vehicle.value = params.get("vehicle");
+        weather.value = params.get("weather");
 
-    // 疑似プログレス
-    let progress = 0;
-    const bar = document.getElementById("progressFill");
-    const percent = document.getElementById("progressPercent");
-    const car = document.querySelector(".car");
+        let progress = 0;
+        const bar = document.getElementById("progressFill");
+        const percent = document.getElementById("progressPercent");
+        const car = document.querySelector(".car");
 
-    const timer = setInterval(() => {
-        if (progress < 90) {
-            progress += 1;
-            bar.style.width = progress + "%";
-            percent.textContent = progress + "%";
-            car.style.left = `calc(${progress}% - 12px)`;
-        }
-    }, 40);
+        const timer = setInterval(() => {
+            if (progress < 90) {
+                progress += 1;
+                bar.style.width = progress + "%";
+                percent.textContent = progress + "%";
+                car.style.left = `calc(${progress}% - 12px)`;
+            }
+        }, 40);
 
-    // GPS取得
-    navigator.geolocation.getCurrentPosition(
-        (pos) => {
-            clearInterval(timer);
-            bar.style.width = "100%";
-            percent.textContent = "100%";
-            car.style.left = "calc(100% - 12px)";
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                lat.value = pos.coords.latitude.toFixed(6);
+                lng.value = pos.coords.longitude.toFixed(6);
 
-            lat.value = pos.coords.latitude.toFixed(6);
-            lng.value = pos.coords.longitude.toFixed(6);
+                await fetch("/prepare_accidents", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        lat: lat.value,
+                        lng: lng.value
+                    })
+                });
 
-            setTimeout(() => {
-                document.getElementById("sendForm").submit();
-            }, 500);
-        },
-        () => {
-            alert("位置情報取得に失敗しました。");
-            location.href = "/";
-        }
-    );
-};
+                // 完了表示
+                clearInterval(timer);
+                bar.style.width = "100%";
+                percent.textContent = "100%";
+                car.style.left = "calc(100% - 12px)";
+
+                // 処理完了後に遷移
+                setTimeout(() => {
+                    document.getElementById("sendForm").submit();
+                }, 300);
+            },
+            () => {
+                alert("位置情報取得に失敗しました。");
+                location.href = "/";
+            }
+        );
+    };
 </script>
+
 
 </body>
 </html>

@@ -1,7 +1,7 @@
 import os
 import pandas as pd
-import re
-from flask import Flask, render_template, request
+import math
+from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 from utils.comment import get_comment, load_comments
 
@@ -13,6 +13,70 @@ load_dotenv()
 app = Flask(__name__)
 load_comments()
 base_dir = os.path.dirname(os.path.abspath(__file__))
+
+def dms_to_decimal(value, is_lat=True):
+    
+    value = str(value).zfill(9 if is_lat else 10)
+
+    if is_lat:
+        deg = int(value[0:2])
+        minute = int(value[2:4])
+        sec = int(value[4:6])
+        sec_frac = int(value[6:9]) / 1000
+    else:
+        deg = int(value[0:3])
+        minute = int(value[3:5])
+        sec = int(value[5:7])
+        sec_frac = int(value[7:10]) / 1000
+
+    return deg + minute / 60 + (sec + sec_frac) / 3600
+
+#距離計算
+def calc_distance_km(lat1, lng1, lat2, lng2):
+    R = 6371  # 地球半径(km)
+    lat1, lng1, lat2, lng2 = map(math.radians, [lat1, lng1, lat2, lng2])
+
+    dlat = lat2 - lat1
+    dlng = lng2 - lng1
+
+    a = math.sin(dlat / 2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlng / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+#事故詳細表示用当事コード
+def convert_vehicle(code):
+    try:
+        code = int(code)
+    except (TypeError, ValueError):
+        return "不明"
+
+    if code == 0:
+        return "不明"
+    elif 1 <= code <= 5:
+        return "乗用車"
+    elif 11 <= code <= 14 or code == 17:
+        return "貨物車"
+    elif 31 <= code <= 35:
+        return "二輪車"
+    elif code == 36:
+        return "原付"
+    elif code == 41:
+        return "路面電車"
+    elif code == 42:
+        return "列車"
+    elif code == 43:
+        return "電動キックボード等"
+    elif code == 51 or code == 52:
+        return "自転車"
+    elif code == 61:
+        return "歩行者"
+    elif code == 75:
+        return "物件等"
+    elif code == 76:
+        return "相手なし"
+    else:
+        return "その他"
+
 
 #質問入力画面(トップページ)
 @app.route('/')
@@ -31,17 +95,21 @@ def result():
     data = request.form
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
 
-    #テスト用緯度経度をCSVと同じ形式にする（本番で削除可）
-    lat = request.form.get("lat")
-    lng = request.form.get("lng")
-    lat_clean = lat.replace(".", "") if lat else "取得失敗"
-    lng_clean = lng.replace(".", "") if lng else "取得失敗"
+    #現在地
+    lat = data.get("lat")
+    lng = data.get("lng")
+
+    if not lat or not lng:
+        return "位置情報が取得できませんでした"
+
+    current_lat = float(lat)
+    current_lng = float(lng)
 
     #アドバイスを生成
-    time = request.form["time"]
-    age = request.form["age"]
-    vehicle = request.form["vehicle"]
-    weather = request.form["weather"]
+    time = data.get("time")
+    age = data.get("age")
+    vehicle = data.get("vehicle")
+    weather = data.get("weather")
 
     message = get_comment(time, age, vehicle, weather)
 
@@ -55,10 +123,24 @@ def result():
     except FileNotFoundError:
         return f"エラー: ファイルが見つかりません。パス: {csv_path}"
 
-    # 数値変換（年齢用）
-    df['年齢（当事者A）'] = pd.to_numeric(df['年齢（当事者A）'], errors='coerce')
+    df_all = df.copy()
+    df_filtered = df.copy()
+
+    #緯度経度リネーム
+    for d in [df_all, df_filtered]:
+        d.rename(columns={
+            '地点　緯度（北緯）': 'lat',
+            '地点　経度（東経）': 'lng'
+        }, inplace=True)
+
+        d['lat'] = d['lat'].apply(lambda x: dms_to_decimal(x, is_lat=True))
+        d['lng'] = d['lng'].apply(lambda x: dms_to_decimal(x, is_lat=False))
+
+        d.dropna(subset=['lat', 'lng'], inplace=True)
 
     # --- 2. 年齢フィルタリング ---
+    # 数値変換（年齢用）
+    df_filtered['年齢（当事者A）'] = pd.to_numeric(df_filtered['年齢（当事者A）'], errors='coerce')
     user_age_str = data.get('age')
     if user_age_str:
         target_code = None
@@ -70,7 +152,7 @@ def result():
         elif "65" in user_age_str: target_code = 65
         elif "75" in user_age_str: target_code = 75
         if target_code is not None:
-            df = df[df['年齢（当事者A）'] == target_code]
+            df_filtered = df_filtered[df_filtered['年齢（当事者A）'] == target_code]
 
     # --- 3. 車種フィルタリング ---
     user_vehicle = data.get('vehicle')
@@ -81,7 +163,7 @@ def result():
         elif "バイク" in user_vehicle: target_codes = [11, 12]
         elif "自転車" in user_vehicle: target_codes = [13, 14]
         if target_codes:
-            df = df[df['当事者種別（当事者A）'].isin(target_codes)]
+            df_filtered = df_filtered[df_filtered['当事者種別（当事者A）'].isin(target_codes)]
 
     # --- 4. 天候フィルタリング ---
     user_weather = data.get('weather')
@@ -93,7 +175,7 @@ def result():
         elif "霧" in user_weather: weather_code = 4
         elif "雪" in user_weather: weather_code = 5
         if weather_code is not None:
-            df = df[df['天候'] == weather_code]
+            df_filtered = df_filtered[df_filtered['天候'] == weather_code]
     
     # --- 5. 時間帯の絞り込み ---
     user_time_str = data.get('time')
@@ -107,7 +189,7 @@ def result():
         elif "夜" in user_time_str: target_hours = [18, 19, 20, 21]
 
     # --- 6. 集計とグラフデータ作成 ---
-    hourly_counts = df['発生日時　　時'].value_counts()
+    hourly_counts = df_filtered['発生日時　　時'].value_counts()
     counts = [int(hourly_counts.get(h, 0)) for h in target_hours]
 
     #スコア計算
@@ -126,14 +208,105 @@ def result():
         chart_labels=target_hours,
         chart_data=counts,
         message=message,
-
-        #緯度経度表示(テスト用本番時削除)
-        lat=lat,
-        lng=lng,
-        lat_clean=lat_clean,
-        lng_clean=lng_clean
-
+        lat=current_lat,
+        lng=current_lng,
     )
+
+@app.route('/get_accidents_by_bounds', methods=['POST'])
+def get_accidents_by_bounds():
+    data = request.get_json()
+
+    lat_min = float(data['lat_min'])
+    lat_max = float(data['lat_max'])
+    lng_min = float(data['lng_min'])
+    lng_max = float(data['lng_max'])
+
+    # CSV読み込み
+    csv_path = os.path.join(base_dir, 'data', 'accident.csv')
+    try:
+        df = pd.read_csv(csv_path, encoding='utf-8')
+    except UnicodeDecodeError:
+        df = pd.read_csv(csv_path, encoding='cp932')
+
+    # 緯度経度整形
+    df.rename(columns={
+        '地点　緯度（北緯）': 'lat',
+        '地点　経度（東経）': 'lng'
+    }, inplace=True)
+
+    df['lat'] = df['lat'].apply(lambda x: dms_to_decimal(x, is_lat=True))
+    df['lng'] = df['lng'].apply(lambda x: dms_to_decimal(x, is_lat=False))
+    df.dropna(subset=['lat', 'lng'], inplace=True)
+
+
+    df_display = df[
+        (df['lat'] >= lat_min) &
+        (df['lat'] <= lat_max) &
+        (df['lng'] >= lng_min) &
+        (df['lng'] <= lng_max)
+    ]
+
+    return jsonify([
+        {"lat": row.lat, "lng": row.lng}
+        for _, row in df_display.iterrows()
+    ])
+
+#現在地周辺の20件の事故地点を表示
+@app.route('/get_nearest_accidents', methods=['POST'])
+def get_nearest_accidents():
+    data = request.get_json()
+    current_lat = float(data['lat'])
+    current_lng = float(data['lng'])
+
+    csv_path = os.path.join(base_dir, 'data', 'accident.csv')
+    try:
+        df = pd.read_csv(csv_path, encoding='utf-8')
+    except UnicodeDecodeError:
+        df = pd.read_csv(csv_path, encoding='cp932')
+
+    # 緯度経度リネーム
+    df.rename(columns={
+        '地点　緯度（北緯）': 'lat',
+        '地点　経度（東経）': 'lng'
+    }, inplace=True)
+
+    # 度分秒十進変換
+    df['lat'] = df['lat'].apply(lambda x: dms_to_decimal(x, is_lat=True))
+    df['lng'] = df['lng'].apply(lambda x: dms_to_decimal(x, is_lat=False))
+    df.dropna(subset=['lat', 'lng'], inplace=True)
+
+    # 距離計算
+    df['distance_km'] = df.apply(
+        lambda r: calc_distance_km(current_lat, current_lng, r.lat, r.lng),
+        axis=1
+    )
+
+    # 事故地点を近い順に20件
+    df_near = df.sort_values('distance_km').head(20)
+
+    # 事故詳細表示用天候コード
+    WEATHER_MAP = {1: "晴", 2: "曇", 3: "雨", 4: "霧", 5: "雪"}
+
+    result = []
+    for _, row in df_near.iterrows():
+        vehicle_b_code = row.get('当事者種別（当事者B）')
+
+        result.append({
+            "lat": row.lat,
+            "lng": row.lng,
+            "distance_km": round(row.distance_km, 2),
+            "hour": int(row.get('発生日時　　時', -1)),
+            "weather": WEATHER_MAP.get(row.get('天候'), "不明"),
+            "vehicle_a": convert_vehicle(row.get('当事者種別（当事者A）')),
+            "vehicle_b": (
+                convert_vehicle(vehicle_b_code)
+                if pd.notna(vehicle_b_code)
+                else None
+            )
+        })
+
+    return jsonify(result)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

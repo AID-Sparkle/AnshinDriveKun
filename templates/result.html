@@ -13,15 +13,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="result-page">
-<!--
-    テスト用：緯度経度表示（本番で削除可）
-    <h3>（テスト表示）取得した現在位置：</h3>
-    <p id="coords">位置情報取得中…</p>
-
-    小数点削除後の緯度経度（CSV形式用）
-    <li><strong>緯度（CSV形式）:</strong> {{ lat_clean }}</li>
-    <li><strong>経度（CSV形式）:</strong> {{ lng_clean }}</li>
--->
 
     <div class="container">
         <h1>🔍 診断結果</h1>
@@ -39,7 +30,7 @@
             <div class="score-label">危険度スコア</div>
             <div class="score">{{ score }}点</div>
             <div class="advice">
-                <strong>【AIからのアドバイス】</strong><br>
+                <strong>【一言アドバイス】</strong><br>
                 {{ message | safe }}
             </div>
         </div>
@@ -50,7 +41,8 @@
             <canvas id="myChart"></canvas>
         </div>
 
-        <h2 class="section-title">📍 あなたの現在地周辺</h2>
+        <h2 class="section-title">📍 現在地周辺の事故事例(20件)</h2>
+        <p class="map-click-note">事故地点をクリックすることで詳細を確認出来ます</p>
         <div id="map"></div>
         <p class="map-note">※取得した位置情報を表示しています</p>
 
@@ -65,19 +57,105 @@
     </div>
 
     <script>
-        function initMap() {
-            //マップ初期位置(皇居周辺)
+        const accidentCircles = [];
+        
+        async function initMap() {
             const lat = Number("{{ lat }}") || 35.685175;
             const lng = Number("{{ lng }}") || 139.7528;
-            const myLocation = { lat: lat, lng: lng };
-            
-            const mapOptions = { zoom: 15, center: myLocation };
-            const map = new google.maps.Map(document.getElementById("map"), mapOptions);
-            new google.maps.Marker({ position: myLocation, map: map, title: "現在地" });
+            const myLocation = { lat, lng };
+
+            const map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 13,
+                center: myLocation,
+            });
+
+            new google.maps.Marker({
+                position: myLocation,
+                map: map,
+                title: "現在地"
+            });
+
+            // 地図描画完了を待つ
+            await new Promise(resolve => {
+                google.maps.event.addListenerOnce(map, 'idle', resolve);
+            });
+
+            const res = await fetch("/get_nearest_accidents", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ lat, lng })
+            });
+
+            const points = await res.json();
+            const infoWindow = new google.maps.InfoWindow();
+
+            points.forEach((p, i) => {
+                // 現在地から遠いほど色を薄くする
+                let opacity = 0.8;
+                if (p.distance_km > 2) opacity = 0.2;
+                else if (p.distance_km > 1) opacity = 0.4;
+                else if (p.distance_km > 0.5) opacity = 0.6;
+
+                const circle = new google.maps.Circle({
+                    strokeColor: "#ff7a00",
+                    strokeOpacity: opacity,
+                    strokeWeight: 1,
+                    fillColor: "#ff7a00",
+                    fillOpacity: opacity,
+                    map: map,
+                    center: { lat: p.lat, lng: p.lng },
+                    radius: getRadiusByZoom(map.getZoom())
+                });
+
+                accidentCircles.push(circle);
+
+                // 事故詳細表示
+                circle.addListener("click", () => {
+                    let html = `
+                        <div style="font-size:14px; line-height:1.5">
+                            <strong>現在地からの距離：${p.distance_km} km</strong><br>
+                            発生時刻：${p.hour} 時<br>
+                            天候：${p.weather}<br>
+                            当事者A種別：${p.vehicle_a}<br>
+                    `;
+
+                    if (p.vehicle_b) {
+                        html += `当事者B種別：${p.vehicle_b}<br>`;
+                    }
+
+                    html += `</div>`;
+
+                    infoWindow.setContent(html);
+                    infoWindow.setPosition({ lat: p.lat, lng: p.lng });
+                    infoWindow.open(map);
+                });
+            });
+            map.addListener("zoom_changed", () => {
+                const zoom = map.getZoom();
+                const newRadius = getRadiusByZoom(zoom);
+
+                accidentCircles.forEach(circle => {
+                    circle.setRadius(newRadius);
+                });
+            });
+
+            function getRadiusByZoom(zoom) {
+                // 基準 zoom = 13
+                const baseZoom = 13;
+                const baseRadius = 70;
+
+                // zoom が 1 上がるごとに半径を半分
+                return baseRadius * Math.pow(2, baseZoom - zoom);
+            }
         }
     </script>
-    <script async src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&callback=initMap"></script>
 
+
+
+
+    <script async src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=visualization&callback=initMap"></script>
+
+    <!-- グラフ表示 -->
     <script>
         // Pythonから渡されたデータを受け取る
         const chartLabels = {{ chart_labels | tojson }};
