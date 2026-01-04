@@ -11,7 +11,6 @@ load_dotenv()
 
 #設定
 app = Flask(__name__)
-load_comments()
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
 def dms_to_decimal(value, is_lat=True):
@@ -77,6 +76,30 @@ def convert_vehicle(code):
     else:
         return "その他"
 
+# 起動時にCSV読込
+def load_accident_df():
+    csv_path = os.path.join(base_dir, 'data', 'accident.csv')
+    try:
+        df = pd.read_csv(csv_path, encoding='utf-8')
+    except UnicodeDecodeError:
+        df = pd.read_csv(csv_path, encoding='cp932')
+
+    # 緯度経度リネーム
+    df.rename(columns={
+        '地点　緯度（北緯）': 'lat',
+        '地点　経度（東経）': 'lng'
+    }, inplace=True)
+
+    # 度分秒 → 十進
+    df['lat'] = df['lat'].apply(lambda x: dms_to_decimal(x, is_lat=True))
+    df['lng'] = df['lng'].apply(lambda x: dms_to_decimal(x, is_lat=False))
+    df.dropna(subset=['lat', 'lng'], inplace=True)
+
+    return df
+
+# 初回起動時に実行
+ACCIDENT_DF = load_accident_df()
+load_comments()
 
 #質問入力画面(トップページ)
 @app.route('/')
@@ -91,21 +114,19 @@ def loading():
 #結果画面
 @app.route('/result', methods=['POST'])
 def result():
-    #フォームから送られてきたデータを取得
     data = request.form
-    api_key = os.getenv("GOOGLE_MAPS_API_KzEY")
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
 
-    #現在地
+    # 現在地
     lat = data.get("lat")
     lng = data.get("lng")
-
     if not lat or not lng:
         return "位置情報が取得できませんでした"
 
     current_lat = float(lat)
     current_lng = float(lng)
 
-    #アドバイスを生成
+    # 入力条件
     time = data.get("time")
     age = data.get("age")
     vehicle = data.get("vehicle")
@@ -113,100 +134,78 @@ def result():
 
     message = get_comment(time, age, vehicle, weather)
 
-    #グラフ処理
-        # --- 1. CSV読み込み ---
-    csv_path = os.path.join(base_dir, 'data', 'accident.csv')
-    try:
-        df = pd.read_csv(csv_path, encoding='utf-8')
-    except UnicodeDecodeError:
-        df = pd.read_csv(csv_path, encoding='cp932')
-    except FileNotFoundError:
-        return f"エラー: ファイルが見つかりません。パス: {csv_path}"
-
-    df_all = df.copy()
-    df_filtered = df.copy()
-
-    #緯度経度リネーム
-    for d in [df_all, df_filtered]:
-        d.rename(columns={
-            '地点　緯度（北緯）': 'lat',
-            '地点　経度（東経）': 'lng'
-        }, inplace=True)
-
-        d['lat'] = d['lat'].apply(lambda x: dms_to_decimal(x, is_lat=True))
-        d['lng'] = d['lng'].apply(lambda x: dms_to_decimal(x, is_lat=False))
-
-        d.dropna(subset=['lat', 'lng'], inplace=True)
+    # =========================
+    # グラフ用データ処理
+    # =========================
+    df_all = ACCIDENT_DF.copy()
+    df_filtered = ACCIDENT_DF.copy()
 
     # --- 2. 年齢フィルタリング ---
-    # 数値変換（年齢用）
-    df_filtered['年齢（当事者A）'] = pd.to_numeric(df_filtered['年齢（当事者A）'], errors='coerce')
-    user_age_str = data.get('age')
-    if user_age_str:
+    df_filtered['年齢（当事者A）'] = pd.to_numeric(
+        df_filtered['年齢（当事者A）'], errors='coerce'
+    )
+
+    if age:
         target_code = None
-        if "18" in user_age_str: target_code = 1
-        elif "25" in user_age_str: target_code = 25
-        elif "35" in user_age_str: target_code = 35
-        elif "45" in user_age_str: target_code = 45
-        elif "55" in user_age_str: target_code = 55
-        elif "65" in user_age_str: target_code = 65
-        elif "75" in user_age_str: target_code = 75
+        if "18" in age: target_code = 1
+        elif "25" in age: target_code = 25
+        elif "35" in age: target_code = 35
+        elif "45" in age: target_code = 45
+        elif "55" in age: target_code = 55
+        elif "65" in age: target_code = 65
+        elif "75" in age: target_code = 75
+
         if target_code is not None:
             df_filtered = df_filtered[df_filtered['年齢（当事者A）'] == target_code]
 
     # --- 3. 車種フィルタリング ---
-    user_vehicle = data.get('vehicle')
-    if user_vehicle:
+    if vehicle:
         target_codes = []
-        if "乗用車" in user_vehicle: target_codes = [3]
-        elif "貨物車" in user_vehicle: target_codes = [4]
-        elif "バイク" in user_vehicle: target_codes = [11, 12]
-        elif "自転車" in user_vehicle: target_codes = [13, 14]
+        if "乗用車" in vehicle:
+            target_codes = [1, 2, 3, 4, 5]
+        elif "貨物車" in vehicle:
+            target_codes = list(range(11, 18))
+        elif "バイク" in vehicle:
+            target_codes = list(range(31, 36))
+        elif "自転車" in vehicle:
+            target_codes = [51, 52]
+
         if target_codes:
-            df_filtered = df_filtered[df_filtered['当事者種別（当事者A）'].isin(target_codes)]
+            df_filtered = df_filtered[
+                df_filtered['当事者種別（当事者A）'].isin(target_codes)
+            ]
 
     # --- 4. 天候フィルタリング ---
-    user_weather = data.get('weather')
-    if user_weather:
-        weather_code = None
-        if "晴" in user_weather: weather_code = 1
-        elif "曇" in user_weather: weather_code = 2
-        elif "雨" in user_weather: weather_code = 3
-        elif "霧" in user_weather: weather_code = 4
-        elif "雪" in user_weather: weather_code = 5
-        if weather_code is not None:
-            df_filtered = df_filtered[df_filtered['天候'] == weather_code]
-    
-    # --- 5. 時間帯の絞り込み ---
-    user_time_str = data.get('time')
-    target_hours = list(range(24))
-    if user_time_str:
-        if "早朝" in user_time_str: target_hours = [4, 5, 6]
-        elif "午前" in user_time_str: target_hours = [7, 8, 9, 10, 11]
-        elif "午後" in user_time_str: target_hours = [12, 13, 14, 15]
-        elif "夕方" in user_time_str: target_hours = [16, 17]
-        elif "深夜" in user_time_str: target_hours = [22, 23, 0, 1, 2, 3]
-        elif "夜" in user_time_str: target_hours = [18, 19, 20, 21]
+    if weather:
+        weather_map = {"晴": 1, "曇": 2, "雨": 3, "霧": 4, "雪": 5}
+        for key, code in weather_map.items():
+            if key in weather:
+                df_filtered = df_filtered[df_filtered['天候'] == code]
+                break
 
-    # --- 6. 集計とグラフデータ作成 ---
+    # --- 5. 時間帯 ---
+    target_hours = list(range(24))
+    if time:
+        if "早朝" in time: target_hours = [4, 5, 6]
+        elif "午前" in time: target_hours = [7, 8, 9, 10, 11]
+        elif "午後" in time: target_hours = [12, 13, 14, 15]
+        elif "夕方" in time: target_hours = [16, 17]
+        elif "夜" in time: target_hours = [18, 19, 20, 21]
+        elif "深夜" in time: target_hours = [22, 23, 0, 1, 2, 3]
+
+    # --- 6. 集計 ---
     hourly_counts = df_filtered['発生日時　　時'].value_counts()
     counts = [int(hourly_counts.get(h, 0)) for h in target_hours]
 
-
-    #スコア計算
-    score = calculate_risk_score(
-        time=request.form["time"],
-        age=request.form["age"],
-        weather=request.form["weather"],
-        vehicle=request.form["vehicle"]
-)
+    # スコア
+    score = calculate_risk_score(time, age, weather, vehicle)
 
     return render_template(
         'result.html',
-        time=data.get('time'),
-        age=data.get('age'),
-        vehicle=data.get('vehicle'),
-        weather=data.get('weather'),
+        time=time,
+        age=age,
+        vehicle=vehicle,
+        weather=weather,
         api_key=api_key,
         score=score,
         chart_labels=target_hours,
@@ -216,45 +215,6 @@ def result():
         lng=current_lng,
     )
 
-@app.route('/get_accidents_by_bounds', methods=['POST'])
-def get_accidents_by_bounds():
-    data = request.get_json()
-
-    lat_min = float(data['lat_min'])
-    lat_max = float(data['lat_max'])
-    lng_min = float(data['lng_min'])
-    lng_max = float(data['lng_max'])
-
-    # CSV読み込み
-    csv_path = os.path.join(base_dir, 'data', 'accident.csv')
-    try:
-        df = pd.read_csv(csv_path, encoding='utf-8')
-    except UnicodeDecodeError:
-        df = pd.read_csv(csv_path, encoding='cp932')
-
-    # 緯度経度整形
-    df.rename(columns={
-        '地点　緯度（北緯）': 'lat',
-        '地点　経度（東経）': 'lng'
-    }, inplace=True)
-
-    df['lat'] = df['lat'].apply(lambda x: dms_to_decimal(x, is_lat=True))
-    df['lng'] = df['lng'].apply(lambda x: dms_to_decimal(x, is_lat=False))
-    df.dropna(subset=['lat', 'lng'], inplace=True)
-
-
-    df_display = df[
-        (df['lat'] >= lat_min) &
-        (df['lat'] <= lat_max) &
-        (df['lng'] >= lng_min) &
-        (df['lng'] <= lng_max)
-    ]
-
-    return jsonify([
-        {"lat": row.lat, "lng": row.lng}
-        for _, row in df_display.iterrows()
-    ])
-
 #現在地周辺の20件の事故地点を表示
 @app.route('/get_nearest_accidents', methods=['POST'])
 def get_nearest_accidents():
@@ -262,22 +222,7 @@ def get_nearest_accidents():
     current_lat = float(data['lat'])
     current_lng = float(data['lng'])
 
-    csv_path = os.path.join(base_dir, 'data', 'accident.csv')
-    try:
-        df = pd.read_csv(csv_path, encoding='utf-8')
-    except UnicodeDecodeError:
-        df = pd.read_csv(csv_path, encoding='cp932')
-
-    # 緯度経度リネーム
-    df.rename(columns={
-        '地点　緯度（北緯）': 'lat',
-        '地点　経度（東経）': 'lng'
-    }, inplace=True)
-
-    # 度分秒十進変換
-    df['lat'] = df['lat'].apply(lambda x: dms_to_decimal(x, is_lat=True))
-    df['lng'] = df['lng'].apply(lambda x: dms_to_decimal(x, is_lat=False))
-    df.dropna(subset=['lat', 'lng'], inplace=True)
+    df = ACCIDENT_DF.copy()
 
     # 距離計算
     df['distance_km'] = df.apply(
@@ -315,4 +260,3 @@ def get_nearest_accidents():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
