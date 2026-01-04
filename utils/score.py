@@ -12,8 +12,7 @@ def calculate_risk_score(time, age, weather, vehicle):
         "晴れ": 1,
         "曇り": 2,
         "雨": 3,
-        "雷": 4,
-        "濃霧": 5,
+        "霧": 5,
         "雪": 5
     }
 
