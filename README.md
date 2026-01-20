@@ -1,4 +1,5 @@
 # あんしんどらいぶくん 🚗
+[アクセスはこちらから](https://anshindrivekun.vercel.app)
 
 運転時の状況（時間帯・年齢・車種・天候）と  
 現在地周辺の交通事故データ(オープンデータ)をもとに、  
@@ -33,7 +34,7 @@ Flask を用いたシンプルな構成で、スマートフォンからの利�
   - https://www.npa.go.jp/publications/statistics/koutsuu/opendata/index_opendata.html
 
 - インフラ  
-  - Render（デプロイ予定）
+  - Vercel
 
 ---
 
